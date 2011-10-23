@@ -7,8 +7,6 @@ import Data.IntMap ((!))
 import Data.Maybe
 
 data Proc = Proc(Int, Int, String)
-getPid (Proc(pid, _, _)) = pid
-getPpid (Proc(_, ppid, _)) = ppid
 getCmd (Proc(_, _, cmd)) = cmd
 instance Show Proc where
   show (Proc(pid, ppid, cmd)) = 
@@ -22,7 +20,7 @@ parser header =
       iCmd = fromJust $ findIndex (flip elem ["CMD", "COMMAND"]) cols
   in
     \line -> let ws = words line in
-    Proc(read $ ws !! iPid, read $ ws !! iPpid, concat $ drop iCmd ws)
+      Proc(read $ ws !! iPid, read $ ws !! iPpid, concat $ drop iCmd ws)
 
 main :: IO()
 main = do
@@ -30,13 +28,13 @@ main = do
   contents <- getContents
   let procs = map (parser header) (lines contents)
       -- map from process IDs to processes
-      pmap = IntMap.fromList $ map (\p -> (getPid p, p)) procs
+      pmap = IntMap.fromList $ map (\p @ (Proc(pid, _, _)) -> (pid, p)) procs
       -- map from parent PIDs to their child PIDs
       tmap = IntMap.fromListWith IntSet.union $ 
-             map (\p -> (getPpid p, IntSet.singleton $ getPid p)) procs
+             map (\p @ (Proc(pid, ppid, _)) -> (ppid, IntSet.singleton $ pid)) procs
       -- show all subtrees for a given PID
-      showTrees l i = map (showTree l) (IntSet.toList $ tmap ! i)
+      showTrees' l i = map (showTree' l) (IntSet.toList $ tmap ! i)
       -- show a single tree with its subtrees
-      showTree l i = (replicate l " ") ++ [show i, ": ", getCmd $ pmap ! i, "\n"] ++ 
-                     if IntMap.member i tmap then concat $ showTrees (l + 1) i else []
-  putStr $ concat $ concat $ showTrees 0 0
+      showTree' l i = (replicate l " ") ++ [show i, ": ", getCmd $ pmap ! i, "\n"] ++ 
+                     if IntMap.member i tmap then concat $ showTrees' (l + 1) i else []
+  putStr $ concat $ concat $ showTrees' 0 0
