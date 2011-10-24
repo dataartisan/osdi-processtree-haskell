@@ -1,4 +1,3 @@
-import qualified Data.IntSet as IntSet
 import Data.List
 import qualified Data.IntMap as IntMap
 import Data.IntMap ((!))
@@ -23,9 +22,9 @@ main = do
   contents <- getContents
   let procs = map (parser header) (lines contents)
       pmap = IntMap.fromList $ map (\p @ (Proc(pid, _, _)) -> (pid, p)) procs
-      tmap = IntMap.fromListWith IntSet.union $ 
-             map (\p @ (Proc(pid, ppid, _)) -> (ppid, IntSet.singleton $ pid)) procs
-      showTrees' l i = concatMap (showTree' l) (IntSet.toList $ tmap ! i)
+      tmap = IntMap.fromListWith (++) $ 
+             map (\p @ (Proc(pid, ppid, _)) -> (ppid, [pid])) procs
+      showTrees' l i = concatMap (showTree' l) (tmap ! i)
       showTree' l i = (replicate l " ") ++ [show i, ": ", getCmd $ pmap ! i, "\n"] ++ 
                       if IntMap.member i tmap then showTrees' (l + 1) i else []
   putStr $ concat $ showTrees' 0 0
