@@ -25,7 +25,7 @@ main = do
       pmap = IntMap.fromList $ map (\p @ (Proc(pid, _, _)) -> (pid, p)) procs
       tmap = IntMap.fromListWith IntSet.union $ 
              map (\p @ (Proc(pid, ppid, _)) -> (ppid, IntSet.singleton $ pid)) procs
-      showTrees' l i = map (showTree' l) (IntSet.toList $ tmap ! i)
+      showTrees' l i = concatMap (showTree' l) (IntSet.toList $ tmap ! i)
       showTree' l i = (replicate l " ") ++ [show i, ": ", getCmd $ pmap ! i, "\n"] ++ 
-                     if IntMap.member i tmap then concat $ showTrees' (l + 1) i else []
-  putStr $ concat $ concat $ showTrees' 0 0
+                      if IntMap.member i tmap then showTrees' (l + 1) i else []
+  putStr $ concat $ showTrees' 0 0
