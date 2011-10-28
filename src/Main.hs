@@ -16,15 +16,17 @@ parser header =
     \line -> let ws = words line in
       Proc(read $ ws !! iPid, read $ ws !! iPpid, concat $ drop iCmd ws)
 
-main :: IO()
-main = do
-  header <- getLine
-  contents <- getContents
-  let procs = map (parser header) (lines contents)
+printProcessTree :: [String] -> [String]
+printProcessTree (header : lines) = 
+  let procs = map (parser header) lines
       pmap = IntMap.fromList $ map (\p @ (Proc(pid, _, _)) -> (pid, p)) procs
       tmap = IntMap.fromListWith (++) $ 
              map (\p @ (Proc(pid, ppid, _)) -> (ppid, [pid])) procs
-      showTrees' l i = concatMap (showTree' l) (tmap ! i)
-      showTree' l i = (replicate l " ") ++ [show i, ": ", getCmd $ pmap ! i, "\n"] ++ 
-                      if IntMap.member i tmap then showTrees' (l + 1) i else []
-  putStr $ concat $ showTrees' 0 0
+      showTrees l i = concatMap (showTree l) (tmap ! i)
+      showTree l i = ((concat $ replicate l " ") ++ (show i) ++ ": " ++ (getCmd $ pmap ! i)) :
+                      if IntMap.member i tmap then showTrees (l + 1) i else []
+  in
+    showTrees 0 0
+
+main :: IO()
+main = interact $ unlines . printProcessTree . lines
